@@ -1,34 +1,22 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 4.0"
-    }
-  }
-}
-
-# Configure the AWS Provider
-provider "aws" {
-  region = "us-east-2"
-}
-
 resource "aws_vpc" "vpc_terraform" {
-    cidr_block = var.vpc_cidr_block
+  cidr_block = var.vpc_cidr_block
 
-    tags = {
-      Name = "vpc_terraform"
-      Owner = var.owner
-      Department = var.department
-    }
+  tags = {
+    Name        = var.vpc_name
+    Owner       = var.owner
+    Department  = var.department
+    Environment = var.environment
+  }
 }
 
 resource "aws_internet_gateway" "igw_terraform" {
   vpc_id = aws_vpc.vpc_terraform.id
 
   tags = {
-    Name = "igw-terraform"
-    Owner = var.owner
-    Department = var.department
+    Name        = var.igw_name
+    Owner       = var.owner
+    Department  = var.department
+    Environment = var.environment
   }
 }
 
@@ -41,9 +29,10 @@ resource "aws_route_table" "public_rt_table" {
   }
 
   tags = {
-    Name = "public_rt_table"
-    Owner = var.owner
-    Department = var.department
+    Name        = "public_rt_table"
+    Owner       = var.owner
+    Department  = var.department
+    Environment = var.environment
   }
 }
 
@@ -56,9 +45,10 @@ resource "aws_route_table" "private_rt_table" {
   }
 
   tags = {
-    Name = "private_rt_table"
-    Owner = var.owner
-    Department = var.department
+    Name        = "private_rt_table"
+    Owner       = var.owner
+    Department  = var.department
+    Environment = var.environment
   }
 }
 
@@ -80,4 +70,23 @@ resource "aws_route_table_association" "assoc_private_a" {
 resource "aws_route_table_association" "assoc_private_b" {
   subnet_id      = aws_subnet.private_subnet_b.id
   route_table_id = aws_route_table.private_rt_table.id
+}
+
+resource "aws_eip" "nat_gw_eip" {
+  vpc        = true
+  depends_on = [aws_internet_gateway.igw_terraform]
+}
+
+resource "aws_nat_gateway" "nat_gw" {
+  allocation_id = aws_eip.nat_gw_eip.id
+  subnet_id     = aws_subnet.public_subnet_a.id
+
+  tags = {
+    Name        = var.nat_gw_name
+    Owner       = var.owner
+    Department  = var.department
+    Environment = var.environment
+  }
+
+  depends_on = [aws_internet_gateway.igw_terraform]
 }
